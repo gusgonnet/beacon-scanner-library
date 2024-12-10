@@ -39,6 +39,8 @@ public:
     int getWindowState() const { return windowState; }
     int getRotation() const { return rotation; }
     int getIlluminance() const { return illuminance; }
+    int getTemperature() const { return temperature; }
+    int getHumidity() const { return humidity; }
 
 private:
     int packetId = 0;
@@ -47,6 +49,8 @@ private:
     int windowState = 0;
     int rotation = 0;
     int illuminance = 0;
+    int temperature = 0;
+    int humidity = 0;
 
     friend class Beaconscanner;
     static Vector<BTHome> beacons;
