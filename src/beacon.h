@@ -28,7 +28,8 @@ typedef enum ble_scanner_config_t {
   SCAN_LAIRDBT510      = 0x08,
   SCAN_BTHOME          = 0x10,
   SCAN_RUUVI           = 0x20,
-  SCAN_THERMOPRO       = 0x40
+  SCAN_THERMOPRO       = 0x40,
+  SCAN_GOOVEE          = 0x80
 } ble_scanner_config_t;
 
 class Beacon {

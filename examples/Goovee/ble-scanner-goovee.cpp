@@ -22,13 +22,13 @@ void loop()
     Log.info("Scanning...");
     scannedTime = millis();
 
-    Scanner.scan(1, SCAN_THERMOPRO);
+    Scanner.scan(1, SCAN_GOOVEE);
 
-    Vector<ThermoPro> beacons = Scanner.getThermoPro();
+    Vector<Goovee> beacons = Scanner.getGoovee();
     while (!beacons.isEmpty())
     {
-      ThermoPro beacon = beacons.takeFirst();
-      Log.info("ThermoPro Address: %s, Temperature: %.1f C / %.1f F, Humidity: %u%%", beacon.getAddress().toString().c_str(), beacon.getTemperatureC(), beacon.getTemperatureF(), beacon.getHumidity());
+      Goovee beacon = beacons.takeFirst();
+      Log.info("Goovee Address: %s, Temperature: %.1f C / %.1f F, Humidity: %.1f%%, batteryLevel: %d%%", beacon.getAddress().toString().c_str(), beacon.getTemperatureC(), beacon.getTemperatureF(), beacon.getHumidity(), beacon.getBatteryLevel());
     }
   }
 }

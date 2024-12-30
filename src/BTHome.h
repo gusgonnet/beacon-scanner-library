@@ -37,9 +37,9 @@ public:
     int getBatteryLevel() const { return batteryLevel; }
     int getButtonEvent() const { return buttonEvent; }
     int getWindowState() const { return windowState; }
-    int getRotation() const { return rotation; }
-    int getIlluminance() const { return illuminance; }
-    int getTemperature() const { return temperature; }
+    float getRotation() const { return rotation; }
+    float getIlluminance() const { return illuminance; }
+    float getTemperature() const { return temperature; }
     int getHumidity() const { return humidity; }
 
 private:
@@ -47,9 +47,9 @@ private:
     int batteryLevel = 0;
     int buttonEvent = 0;
     int windowState = 0;
-    int rotation = 0;
-    int illuminance = 0;
-    int temperature = 0;
+    float rotation = 0;
+    float illuminance = 0;
+    float temperature = 0;
     int humidity = 0;
 
     friend class Beaconscanner;

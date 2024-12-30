@@ -41,6 +41,9 @@
 #ifdef SUPPORT_THERMOPRO
 #include "ThermoPro.h"
 #endif
+#ifdef SUPPORT_GOOVEE
+#include "Goovee.h"
+#endif
 
 // This is the type that will be returned in the callback function, whether a tag has
 // entered the area of the device, or left the area.
@@ -187,6 +190,9 @@ public:
 #ifdef SUPPORT_THERMOPRO
   Vector<ThermoPro>& getThermoPro() {return ThermoPro::beacons;};
 #endif
+#ifdef SUPPORT_GOOVEE
+  Vector<Goovee>& getGoovee() {return Goovee::beacons;};
+#endif
 
   template<typename T> static String getJson(Vector<T>* beacons, uint8_t count, void* context);
 
@@ -219,6 +225,9 @@ private:
 #endif
 #ifdef SUPPORT_THERMOPRO
   Vector<BleAddress> tPublished;
+#endif
+#ifdef SUPPORT_GOOVEE
+  Vector<BleAddress> gPublished;
 #endif
   Thread* _thread;
   static Beaconscanner* _instance;

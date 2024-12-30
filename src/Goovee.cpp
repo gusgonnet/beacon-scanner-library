@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-#include "ThermoPro.h"
+#include "Goovee.h"
 
-Vector<ThermoPro> ThermoPro::beacons;
+Vector<Goovee> Goovee::beacons;
 #define MAX_MANUFACTURER_DATA_LEN 37
 
-void ThermoPro::populateData(const BleScanResult *scanResult)
+void Goovee::populateData(const BleScanResult *scanResult)
 {
     Beacon::populateData(scanResult);
     address = ADDRESS(scanResult);
@@ -27,32 +27,32 @@ void ThermoPro::populateData(const BleScanResult *scanResult)
     uint8_t buf[BLE_MAX_ADV_DATA_LEN];
     uint8_t count = ADVERTISING_DATA(scanResult).get(BleAdvertisingDataType::MANUFACTURER_SPECIFIC_DATA, buf, BLE_MAX_ADV_DATA_LEN);
 
-    if (!parseThermoProAdvertisement(buf, count))
+    if (!parseGooveeAdvertisement(buf, count))
     {
-        Log.error("ThermoPro: advertisement parsing failed");
+        Log.error("Goovee: advertisement parsing failed");
     }
 }
 
-bool ThermoPro::isBeacon(const BleScanResult *scanResult)
+bool Goovee::isBeacon(const BleScanResult *scanResult)
 {
     uint8_t buf[BLE_MAX_ADV_DATA_LEN];
     ADVERTISING_DATA(scanResult).get(BleAdvertisingDataType::MANUFACTURER_SPECIFIC_DATA, buf, BLE_MAX_ADV_DATA_LEN);
 
     String name = scanResult->advertisingData().deviceName();
 
-    if (name.length() >= 5)
+    if (name.length() >= 7)
     {
-        String prefix = name.substring(0, 5); // Extract the first 5 characters
-        if (prefix == "TP357" || prefix == "TP359")
+        String prefix = name.substring(0, 7); // Extract the first 7 characters
+        if (prefix == "GVH5105")
         {
-            Log.trace("ThermoPro sensor found");
+            Log.trace("Goovee sensor found");
             return true;
         }
     }
     return false;
 }
 
-void ThermoPro::toJson(JSONWriter *writer) const
+void Goovee::toJson(JSONWriter *writer) const
 {
     writer->name(address.toString()).beginObject();
     writer->name("temperatureCelsius").value(getTemperatureC());
@@ -61,7 +61,7 @@ void ThermoPro::toJson(JSONWriter *writer) const
     writer->endObject();
 }
 
-void ThermoPro::addOrUpdate(const BleScanResult *scanResult)
+void Goovee::addOrUpdate(const BleScanResult *scanResult)
 {
     uint8_t i;
     for (i = 0; i < beacons.size(); ++i)
@@ -73,44 +73,65 @@ void ThermoPro::addOrUpdate(const BleScanResult *scanResult)
     }
     if (i == beacons.size())
     {
-        ThermoPro new_beacon;
+        Goovee new_beacon;
         new_beacon.populateData(scanResult);
         new_beacon.missed_scan = 0;
         beacons.append(new_beacon);
     }
     else
     {
-        ThermoPro &beacon = beacons.at(i);
+        Goovee &beacon = beacons.at(i);
         beacon.newly_scanned = false;
         beacon.populateData(scanResult);
         beacon.missed_scan = 0;
     }
 }
 
-// parses the ThermoPro Data format
+// parses the Goovee Data format
 // example - Advertising Data: C2 CC 00 2A 22 0B 01
 // CC 00 is the temperature in Celsius (little endian) (one needs to divide by 10)
 // 2a is the humidity
-bool ThermoPro::parseThermoProAdvertisement(const uint8_t *buf, size_t len)
+bool Goovee::parseGooveeAdvertisement(const uint8_t *buf, size_t len)
 {
-
     // Ensure the buffer has enough data for temperature and humidity
-    // At least 4 bytes needed to parse temp and humidity
-    if (len < 3)
+    // At least 8 bytes needed to parse temp and humidity
+    // 01 00 01 01 03 22 8C 64
+    if (len == 8)
     {
-        Log.warn("Error parsing advertising data for the device.");
+        uint8_t temp_humid_bytes[3] = {buf[4], buf[5], buf[6]};
+        temperature = 0.0;
+        humidity = 0.0;
+
+        // Decode temperature and humidity
+        decode_temp_humid(temp_humid_bytes, &temperature, &humidity);
+
+        batteryLevel = buf[7] & 0x7F;
+
+        Log.trace("Parsed Goovee Advertisement: Temperature: %.1f C / %.1f F, Humidity: %.1f%%, batteryLevel: %d%%", temperature, (temperature * 9 / 5 + 32), humidity, batteryLevel);
+        return true;
+    }
+    else
+    {
+        Log.error("Invalid advertisement data length: %d", len);
         return false;
     }
+}
 
-    // Parse temperature (bytes 1 and 2, little-endian)
-    int16_t rawTemp = (buf[2] << 8) | buf[1]; // Combine bytes (little-endian)
-    temperature = rawTemp / 10.0;      // Convert to Celsius
+void Goovee::decode_temp_humid(uint8_t temp_humid_bytes[3], float *temperature, float *humidity)
+{
+    // Combine the 3 bytes into a 24-bit number
+    uint32_t base_num = (temp_humid_bytes[0] << 16) | (temp_humid_bytes[1] << 8) | temp_humid_bytes[2];
 
-    // Parse humidity (byte 3)
-    humidity = buf[3]; // Unsigned integer directly represents percentage
+    bool is_negative = base_num & 0x800000;
+    uint32_t temp_as_int = base_num & 0x7FFFFF;
 
-    // Log the parsed data
-    Log.trace("Parsed ThermoPro Advertisement: Temperature: %.1f C / %.1f F, Humidity: %u%%", temperature, (temperature * 9 / 5 + 32), humidity);
+    // Calculate the temperature as a float
+    *temperature = (temp_as_int / 1000.0) / 10.0;
+    if (is_negative)
+    {
+        *temperature = -*temperature;
+    }
 
-    return true;
+    // Calculate the humidity
+    *humidity = (temp_as_int % 1000) / 10.0;
 }
